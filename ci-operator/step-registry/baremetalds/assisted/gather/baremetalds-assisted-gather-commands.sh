@@ -45,7 +45,8 @@ timeout -s 9 15m ssh "${SSHOPTS[@]}" "root@${IP}" bash - <<EOF |& sed -e 's/.*au
 
 set -xeuo pipefail
 
-cd /home/assisted
+source /root/packet_config
+cd "\${WORKING_DIR}"
 
 source /root/config
 

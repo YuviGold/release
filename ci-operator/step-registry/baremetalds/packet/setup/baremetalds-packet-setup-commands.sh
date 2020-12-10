@@ -70,3 +70,33 @@ EOF
 
 ansible-playbook packet-setup.yaml -e "packet_hostname=ipi-${NAMESPACE}-${JOB_NAME_HASH}-${BUILD_ID}"
 
+# Fetch packet server IP
+IP=$(cat "${SHARED_DIR}/server-ip")
+SSHOPTS=(-o 'ConnectTimeout=5' -o 'StrictHostKeyChecking=no' -o 'UserKnownHostsFile=/dev/null' -o 'ServerAliveInterval=90' -i "${CLUSTER_PROFILE_DIR}/.packet-kni-ssh-privatekey")
+
+# Checkout packet server
+for x in $(seq 10) ; do
+    test "$x" -eq 10 && exit 1
+    ssh "${SSHOPTS[@]}" "root@${IP}" hostname && break
+    sleep 10
+done
+
+scp "${SSHOPTS[@]}" "${CLUSTER_PROFILE_DIR}/pull-secret" "root@${IP}:pull-secret"
+
+timeout -s 9 5m ssh "${SSHOPTS[@]}" "root@${IP}" bash - << EOF
+
+set -xeuo pipefail
+
+# NVMe makes it faster
+NVME_DEVICE="/dev/nvme0n1"
+WORKING_DIR="/opt/${JOB_NAME}"
+if [ -e "\${NVME_DEVICE}" ];
+then
+  mkfs.xfs -f "\${NVME_DEVICE}"
+  mkdir -p "\${WORKING_DIR}"
+  mount "\${NVME_DEVICE}" "\${WORKING_DIR}"
+fi
+
+echo "export WORKING_DIR='\${WORKING_DIR}'" >> /root/packet_config
+
+EOF

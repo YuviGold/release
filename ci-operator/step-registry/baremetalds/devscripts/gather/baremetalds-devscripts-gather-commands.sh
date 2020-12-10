@@ -34,10 +34,12 @@ trap getlogs EXIT
 
 echo "### Gathering logs..."
 timeout -s 9 15m ssh "${SSHOPTS[@]}" "root@${IP}" bash - <<EOF |& sed -e 's/.*auths.*/*** PULL_SECRET ***/g'
-cd dev-scripts
+
+source /root/packet_config
+cd "\${WORKING_DIR}"
 
 # Get install-gather, if there is one
-cp /root/dev-scripts/ocp/ostest/log-bundle*.tar.gz /tmp/artifacts/log-bundle-\$HOSTNAME.tar.gz || true
+cp \${WORKING_DIR}/ocp/ostest/log-bundle*.tar.gz /tmp/artifacts/log-bundle-\$HOSTNAME.tar.gz || true
 
 # Get must-gather
 export MUST_GATHER_PATH=/tmp/artifacts/must-gather

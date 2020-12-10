@@ -34,16 +34,13 @@ finished()
 
   # Get dev-scripts logs
   echo "dev-scripts setup completed, fetching logs"
-  ssh "${SSHOPTS[@]}" "root@${IP}" tar -czf - /root/dev-scripts/logs | tar -C "${ARTIFACT_DIR}" -xzf -
-  sed -i -e 's/.*auths.*/*** PULL_SECRET ***/g' "${ARTIFACT_DIR}"/root/dev-scripts/logs/*
+  ssh "${SSHOPTS[@]}" "root@${IP}" tar -czf - \${WORKING_DIR}/logs | tar -C "${ARTIFACT_DIR}" -xzf -
+  sed -i -e 's/.*auths.*/*** PULL_SECRET ***/g' "${ARTIFACT_DIR}"\${WORKING_DIR}/logs/*
 }
 trap finished EXIT TERM
 
 # Copy dev-scripts source from current directory to the remote server
 tar -czf - . | ssh "${SSHOPTS[@]}" "root@${IP}" "cat > /root/dev-scripts.tar.gz"
-
-# Prepare configuration and run dev-scripts
-scp "${SSHOPTS[@]}" "${CLUSTER_PROFILE_DIR}/pull-secret" "root@${IP}:pull-secret"
 
 # Additional mechanism to inject dev-scripts additional variables directly 
 # from a multistage step configuration.
@@ -73,38 +70,31 @@ systemctl start sysstat
 
 mkdir -p /tmp/artifacts
 
-mkdir dev-scripts
-tar -xzvf dev-scripts.tar.gz -C /root/dev-scripts
-chown -R root:root dev-scripts
+source /root/packet_config
 
-NVME_DEVICE="/dev/nvme0n1"
-if [ -e "\$NVME_DEVICE" ];
-then
-  mkfs.xfs -f "\${NVME_DEVICE}"
-  mkdir /opt/dev-scripts
-  mount "\${NVME_DEVICE}" /opt/dev-scripts
-fi
+tar -xzvf dev-scripts.tar.gz -C "\${WORKING_DIR}"
+chown -R root:root "\${WORKING_DIR}"
 
-cd dev-scripts
+cd "\${WORKING_DIR}"
 
-cp /root/pull-secret /root/dev-scripts/pull_secret.json
+cp /root/pull-secret \${WORKING_DIR}/pull_secret.json
 
-echo "export OPENSHIFT_RELEASE_IMAGE=${OPENSHIFT_INSTALL_RELEASE_IMAGE}" >> /root/dev-scripts/config_root.sh
-echo "export ADDN_DNS=\$(awk '/nameserver/ { print \$2;exit; }' /etc/resolv.conf)" >> /root/dev-scripts/config_root.sh
-echo "export OPENSHIFT_CI=true" >> /root/dev-scripts/config_root.sh
-echo "export WORKER_MEMORY=16384" >> /root/dev-scripts/config_root.sh
+echo "export OPENSHIFT_RELEASE_IMAGE=${OPENSHIFT_INSTALL_RELEASE_IMAGE}" >> \${WORKING_DIR}/config_root.sh
+echo "export ADDN_DNS=\$(awk '/nameserver/ { print \$2;exit; }' /etc/resolv.conf)" >> \${WORKING_DIR}/config_root.sh
+echo "export OPENSHIFT_CI=true" >> \${WORKING_DIR}/config_root.sh
+echo "export WORKER_MEMORY=16384" >> \${WORKING_DIR}/config_root.sh
 
 # Inject PR additional configuration, if available
-if [[ -e /root/dev-scripts/dev-scripts-additional-config ]]
+if [[ -e \${WORKING_DIR}/dev-scripts-additional-config ]]
 then
-  cat /root/dev-scripts/dev-scripts-additional-config >> /root/dev-scripts/config_root.sh
+  cat \${WORKING_DIR}/dev-scripts-additional-config >> \${WORKING_DIR}/config_root.sh
 # Inject job additional configuration, if available
 elif [[ -e /root/dev-scripts-additional-config ]]
 then
-  cat /root/dev-scripts-additional-config >> /root/dev-scripts/config_root.sh
+  cat /root/dev-scripts-additional-config >> \${WORKING_DIR}/config_root.sh
 fi
 
-echo 'export KUBECONFIG=/root/dev-scripts/ocp/ostest/auth/kubeconfig' >> /root/.bashrc
+echo 'export KUBECONFIG=\${WORKING_DIR}/ocp/ostest/auth/kubeconfig' >> /root/.bashrc
 
 timeout -s 9 105m make
 
