@@ -125,8 +125,6 @@ tests:
     env:
       ASSISTED_CONFIG: |
         PLATFORM=none
-        TEST_FUNC=test_install
-        MAKEFILE_TARGET="create_full_environment run test_parallel"
     workflow: baremetalds-assisted-install
 - as: e2e-metal-assisted-none-periodic
   cron: '@daily'
@@ -135,8 +133,6 @@ tests:
     env:
       ASSISTED_CONFIG: |
         PLATFORM=none
-        TEST_FUNC=test_install
-        MAKEFILE_TARGET="create_full_environment run test_parallel"
     workflow: baremetalds-assisted
 - as: e2e-metal-assisted-none-ipv6
   steps:
@@ -149,8 +145,6 @@ tests:
         PROXY=yes
         OPENSHIFT_VERSION=4.8
         PLATFORM=none
-        TEST_FUNC=test_install
-        MAKEFILE_TARGET="create_full_environment run test_parallel"
     workflow: baremetalds-assisted-install
 - as: e2e-metal-assisted-none-ipv6-periodic
   cron: '@daily'
@@ -163,8 +157,6 @@ tests:
         VIP_DHCP_ALLOCATION=no
         PROXY=yes
         PLATFORM=none
-        TEST_FUNC=test_install
-        MAKEFILE_TARGET="create_full_environment run test_parallel"
     workflow: baremetalds-assisted
 - as: e2e-metal-assisted
   steps:
